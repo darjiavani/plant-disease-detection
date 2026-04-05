@@ -47,31 +47,40 @@ body {
     border-radius:15px;
     background:#1c1c1c;
 }
+.stButton>button {
+    background: linear-gradient(45deg,#00ffcc,#00c3ff);
+    color:black;
+    border-radius:10px;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------------------
-# SIGNUP
+# SIGNUP FUNCTION
 # ---------------------------
 def signup():
-    st.subheader("🆕 Create Account")
-    new_user = st.text_input("Username")
-    new_pass = st.text_input("Password", type="password")
+    st.markdown("<h2 class='big-title'>🆕 Signup</h2>", unsafe_allow_html=True)
+    
+    new_user = st.text_input("Create Username")
+    new_pass = st.text_input("Create Password", type="password")
 
     if st.button("Signup"):
         if new_user in users:
-            st.error("User already exists")
+            st.error("User already exists ❌")
+        elif new_user == "" or new_pass == "":
+            st.warning("Please fill all fields ⚠️")
         else:
             users[new_user] = new_pass
             with open("users.json", "w") as f:
                 json.dump(users, f)
-            st.success("Account created!")
+            st.success("Account created ✅")
 
 # ---------------------------
-# LOGIN
+# LOGIN FUNCTION
 # ---------------------------
 def login():
     st.markdown("<h1 class='big-title'>🔐 Login System</h1>", unsafe_allow_html=True)
+
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
@@ -79,18 +88,24 @@ def login():
         if username in users and users[username] == password:
             st.session_state.login = True
             st.session_state.user = username
-            st.success("Login successful")
+            st.success("Login successful ✅")
+            st.rerun()   # 🔥 VERY IMPORTANT
         else:
-            st.error("Invalid credentials")
+            st.error("Invalid credentials ❌")
 
 # ---------------------------
 # MAIN APP
 # ---------------------------
 def main_app():
     st.markdown("<h1 class='big-title'>🌿 Plant Disease Detection</h1>", unsafe_allow_html=True)
-    st.write(f"👤 Welcome: {st.session_state.user}")
+    
+    st.success(f"👤 Welcome {st.session_state.user}")
 
-    file = st.file_uploader("Upload Leaf Image", type=["jpg","png","jpeg"])
+    if st.button("Logout"):
+        st.session_state.login = False
+        st.rerun()
+
+    file = st.file_uploader("📤 Upload Leaf Image", type=["jpg","png","jpeg"])
 
     if file:
         img = Image.open(file).resize((64,64))
@@ -98,17 +113,16 @@ def main_app():
 
         img_array = np.array(img).flatten().reshape(1, -1)
 
-        # Prediction
         probs = model.predict_proba(img_array)[0]
         top3 = np.argsort(probs)[-3:][::-1]
 
-        st.subheader("🔍 Predictions")
+        st.subheader("🔍 Prediction Results")
 
         for i in top3:
-            st.write(f"{class_names[i]} → {round(probs[i]*100,2)}%")
+            st.write(f"🌱 {class_names[i]} → {round(probs[i]*100,2)}%")
 
 # ---------------------------
-# NAVIGATION
+# SIDEBAR MENU
 # ---------------------------
 menu = st.sidebar.selectbox("Menu", ["Login", "Signup"])
 
