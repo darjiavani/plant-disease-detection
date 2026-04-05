@@ -34,5 +34,7 @@ streamlit run app.py
 - Improve accuracy
 - Deploy online
 
+- 🔗 Live Demo: https://plant-disease-detection-xxxxx.streamlit.app
+
 ## 👩‍💻 Author
 Darji Avani
