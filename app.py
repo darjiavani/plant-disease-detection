@@ -11,20 +11,39 @@ import os
 st.set_page_config(page_title="Plant Disease Detection", layout="centered")
 
 # =======================
-# 🎨 BACKGROUND STYLE
+# 🌿 DARK BACKGROUND UI
 # =======================
-page_bg = """
+st.markdown("""
 <style>
 [data-testid="stAppViewContainer"] {
-background-image: url("https://images.unsplash.com/photo-1501004318641-b39e6451bec6");
-background-size: cover;
+    background-image: 
+    linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.9)),
+    url("https://images.unsplash.com/photo-1501004318641-b39e6451bec6");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+h1, h2, h3, h4, h5, h6, p, label {
+    color: white !important;
+}
+
+.block-container {
+    background: rgba(0,0,0,0.5);
+    padding: 20px;
+    border-radius: 15px;
+}
+
+.stButton>button {
+    background-color: #10b981;
+    color: white;
+    border-radius: 10px;
 }
 </style>
-"""
-st.markdown(page_bg, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # =======================
-# 🔐 USER FILE
+# 🔐 USER STORAGE
 # =======================
 USER_FILE = "users.json"
 
@@ -41,7 +60,7 @@ def save_users(users):
         json.dump(users, f)
 
 # =======================
-# 🔐 SESSION STATE
+# 🔐 SESSION
 # =======================
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -71,7 +90,7 @@ if not st.session_state.logged_in:
             if username in users and users[username] == password:
                 st.session_state.logged_in = True
                 st.session_state.username = username
-                st.success("Login successful")
+                st.success("Login successful ✅")
                 st.rerun()
             else:
                 st.error("Invalid credentials ❌")
@@ -84,14 +103,14 @@ if not st.session_state.logged_in:
         if st.button("Create Account"):
             users = load_users()
             if new_user in users:
-                st.warning("User already exists")
+                st.warning("User already exists ⚠")
             else:
                 users[new_user] = new_pass
                 save_users(users)
-                st.success("Account created! Now login")
+                st.success("Account created! Now login ✅")
 
 # =======================
-# 🌿 MAIN APP
+# 🌿 MAIN APP AFTER LOGIN
 # =======================
 else:
 
@@ -112,13 +131,13 @@ else:
     file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "png", "jpeg"])
 
     if file:
+
         img = Image.open(file).resize((64, 64))
         st.image(img, caption="Uploaded Image")
 
-        # PREPROCESS
         img_array = np.array(img).flatten().reshape(1, -1)
 
-        # PREDICTION
+        # PREDICT
         probs = model.predict_proba(img_array)[0]
         pred = np.argmax(probs)
         final_class = class_names[pred]
@@ -126,9 +145,7 @@ else:
         # SAVE HISTORY
         st.session_state.history.append(final_class)
 
-        # =======================
-        # 🎯 RESULT CARD
-        # =======================
+        # RESULT CARD
         st.markdown(f"""
         <div style="background:#1e293b;padding:20px;border-radius:12px">
         <h3 style="color:#38bdf8;">🔍 Prediction Result</h3>
@@ -141,18 +158,14 @@ else:
         # FINAL RESULT
         st.success(f"🌟 Final Prediction: {final_class}")
 
-        # =======================
-        # 📊 PROGRESS BARS
-        # =======================
+        # PROGRESS BARS
         st.subheader("📊 Confidence Level")
 
         for i, cls in enumerate(class_names):
             st.write(cls)
-            st.progress(int(probs[i]*100))
+            st.progress(int(probs[i] * 100))
 
-    # =======================
-    # 📜 HISTORY
-    # =======================
+    # HISTORY
     if st.session_state.history:
         st.subheader("📜 Prediction History")
         st.write(st.session_state.history)
