@@ -5,131 +5,154 @@ import joblib
 import json
 import os
 
-# ---------------------------
-# LOAD MODEL
-# ---------------------------
-model = joblib.load("model/model.pkl")
-class_names = ['Healthy', 'Rust', 'Blight']
+# =======================
+# 🎨 PAGE CONFIG
+# =======================
+st.set_page_config(page_title="Plant Disease Detection", layout="centered")
 
-# ---------------------------
-# USER DATABASE
-# ---------------------------
-if not os.path.exists("users.json"):
-    with open("users.json", "w") as f:
-        json.dump({}, f)
-
-with open("users.json", "r") as f:
-    users = json.load(f)
-
-# ---------------------------
-# SESSION STATE
-# ---------------------------
-if "login" not in st.session_state:
-    st.session_state.login = False
-if "user" not in st.session_state:
-    st.session_state.user = ""
-
-# ---------------------------
-# UI STYLE
-# ---------------------------
-st.markdown("""
+# =======================
+# 🎨 BACKGROUND STYLE
+# =======================
+page_bg = """
 <style>
-body {
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-}
-.big-title {
-    text-align:center;
-    font-size:40px;
-    color:#00ffcc;
-}
-.card {
-    padding:20px;
-    border-radius:15px;
-    background:#1c1c1c;
-}
-.stButton>button {
-    background: linear-gradient(45deg,#00ffcc,#00c3ff);
-    color:black;
-    border-radius:10px;
+[data-testid="stAppViewContainer"] {
+background-image: url("https://images.unsplash.com/photo-1501004318641-b39e6451bec6");
+background-size: cover;
 }
 </style>
-""", unsafe_allow_html=True)
+"""
+st.markdown(page_bg, unsafe_allow_html=True)
 
-# ---------------------------
-# SIGNUP FUNCTION
-# ---------------------------
-def signup():
-    st.markdown("<h2 class='big-title'>🆕 Signup</h2>", unsafe_allow_html=True)
-    
-    new_user = st.text_input("Create Username")
-    new_pass = st.text_input("Create Password", type="password")
+# =======================
+# 🔐 USER FILE
+# =======================
+USER_FILE = "users.json"
 
-    if st.button("Signup"):
-        if new_user in users:
-            st.error("User already exists ❌")
-        elif new_user == "" or new_pass == "":
-            st.warning("Please fill all fields ⚠️")
-        else:
-            users[new_user] = new_pass
-            with open("users.json", "w") as f:
-                json.dump(users, f)
-            st.success("Account created ✅")
+if not os.path.exists(USER_FILE):
+    with open(USER_FILE, "w") as f:
+        json.dump({}, f)
 
-# ---------------------------
-# LOGIN FUNCTION
-# ---------------------------
-def login():
-    st.markdown("<h1 class='big-title'>🔐 Login System</h1>", unsafe_allow_html=True)
+def load_users():
+    with open(USER_FILE, "r") as f:
+        return json.load(f)
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+def save_users(users):
+    with open(USER_FILE, "w") as f:
+        json.dump(users, f)
 
-    if st.button("Login"):
-        if username in users and users[username] == password:
-            st.session_state.login = True
-            st.session_state.user = username
-            st.success("Login successful ✅")
-            st.rerun()   # 🔥 VERY IMPORTANT
-        else:
-            st.error("Invalid credentials ❌")
+# =======================
+# 🔐 SESSION STATE
+# =======================
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-# ---------------------------
-# MAIN APP
-# ---------------------------
-def main_app():
-    st.markdown("<h1 class='big-title'>🌿 Plant Disease Detection</h1>", unsafe_allow_html=True)
-    
-    st.success(f"👤 Welcome {st.session_state.user}")
+if "username" not in st.session_state:
+    st.session_state.username = ""
 
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+# =======================
+# 🔐 LOGIN / SIGNUP
+# =======================
+if not st.session_state.logged_in:
+
+    st.title("🔐 Login System")
+
+    tab1, tab2 = st.tabs(["Login", "Sign Up"])
+
+    # LOGIN
+    with tab1:
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+
+        if st.button("Login"):
+            users = load_users()
+            if username in users and users[username] == password:
+                st.session_state.logged_in = True
+                st.session_state.username = username
+                st.success("Login successful")
+                st.rerun()
+            else:
+                st.error("Invalid credentials ❌")
+
+    # SIGNUP
+    with tab2:
+        new_user = st.text_input("New Username")
+        new_pass = st.text_input("New Password", type="password")
+
+        if st.button("Create Account"):
+            users = load_users()
+            if new_user in users:
+                st.warning("User already exists")
+            else:
+                users[new_user] = new_pass
+                save_users(users)
+                st.success("Account created! Now login")
+
+# =======================
+# 🌿 MAIN APP
+# =======================
+else:
+
+    st.title("🌿 Plant Disease Detection")
+
+    st.success(f"👤 Welcome {st.session_state.username}")
+
+    # LOGOUT
     if st.button("Logout"):
-        st.session_state.login = False
+        st.session_state.logged_in = False
         st.rerun()
 
-    file = st.file_uploader("📤 Upload Leaf Image", type=["jpg","png","jpeg"])
+    # LOAD MODEL
+    model = joblib.load("model/model.pkl")
+    class_names = ["Healthy", "Rust", "Blight"]
+
+    # FILE UPLOAD
+    file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "png", "jpeg"])
 
     if file:
-        img = Image.open(file).resize((64,64))
+        img = Image.open(file).resize((64, 64))
         st.image(img, caption="Uploaded Image")
 
+        # PREPROCESS
         img_array = np.array(img).flatten().reshape(1, -1)
 
+        # PREDICTION
         probs = model.predict_proba(img_array)[0]
-        top3 = np.argsort(probs)[-3:][::-1]
+        pred = np.argmax(probs)
+        final_class = class_names[pred]
 
-        st.subheader("🔍 Prediction Results")
+        # SAVE HISTORY
+        st.session_state.history.append(final_class)
 
-        for i in top3:
-            st.write(f"🌱 {class_names[i]} → {round(probs[i]*100,2)}%")
+        # =======================
+        # 🎯 RESULT CARD
+        # =======================
+        st.markdown(f"""
+        <div style="background:#1e293b;padding:20px;border-radius:12px">
+        <h3 style="color:#38bdf8;">🔍 Prediction Result</h3>
+        <p>🌿 Healthy: {probs[0]*100:.2f}%</p>
+        <p>🍂 Rust: {probs[1]*100:.2f}%</p>
+        <p>⚠ Blight: {probs[2]*100:.2f}%</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-# ---------------------------
-# SIDEBAR MENU
-# ---------------------------
-menu = st.sidebar.selectbox("Menu", ["Login", "Signup"])
+        # FINAL RESULT
+        st.success(f"🌟 Final Prediction: {final_class}")
 
-if not st.session_state.login:
-    if menu == "Login":
-        login()
-    else:
-        signup()
-else:
-    main_app()
+        # =======================
+        # 📊 PROGRESS BARS
+        # =======================
+        st.subheader("📊 Confidence Level")
+
+        for i, cls in enumerate(class_names):
+            st.write(cls)
+            st.progress(int(probs[i]*100))
+
+    # =======================
+    # 📜 HISTORY
+    # =======================
+    if st.session_state.history:
+        st.subheader("📜 Prediction History")
+        st.write(st.session_state.history)
