@@ -33,7 +33,7 @@ streamlit run app.py
 - Add more diseases
 - Improve accuracy
 - Deploy online
-
+https://canva.link/zfkj0ctlra57hxv
 - 🔗 Live Demo: https://plant-disease-detection-xxxxx.streamlit.app
 
 ## 👩‍💻 Author
